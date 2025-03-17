@@ -1,4 +1,4 @@
-import { Message as MessageType } from "@/types/chat";
+import { Message as MessageType } from "../app/types/chat";
 
 interface MessageProps {
   message: MessageType;
@@ -6,7 +6,11 @@ interface MessageProps {
 
 export function Message({ message }: MessageProps) {
   return (
-    <div className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
+    <div
+      className={`flex ${
+        message.role === "user" ? "justify-end" : "justify-start"
+      }`}
+    >
       <div
         className={`rounded-lg px-4 py-2 max-w-[80%] ${
           message.role === "user"

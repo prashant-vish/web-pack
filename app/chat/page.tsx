@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useRef, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -7,16 +6,23 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Message } from "@/types/chat";
+import { Message } from "../types/chat";
 import { Message as MessageComponent } from "@/components/message";
 import { useChat } from "ai/react";
 
 export default function ChatPage() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const router = useRouter();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [preview, setPreview] = useState<string>("");
   const [htmlCode, setHtmlCode] = useState<string>("");
+
+  // Use effect for navigation
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push("/login");
+    }
+  }, [status, router]);
 
   const { messages, input, handleInputChange, handleSubmit, isLoading } =
     useChat({
@@ -25,7 +31,6 @@ export default function ChatPage() {
         // This will be called when we receive a response
         const reader = response.body?.getReader();
         if (!reader) return;
-
         // Process the response to extract HTML code
         processResponse(reader);
       },
@@ -37,14 +42,12 @@ export default function ChatPage() {
     const decoder = new TextDecoder();
     let done = false;
     let accumulatedResponse = "";
-
     while (!done) {
       const { value, done: doneReading } = await reader.read();
       done = doneReading;
       if (value) {
         const chunk = decoder.decode(value, { stream: true });
         accumulatedResponse += chunk;
-
         // Try to extract HTML code from the response
         const htmlMatch = accumulatedResponse.match(/```html([\s\S]*?)```/);
         if (htmlMatch && htmlMatch[1]) {
@@ -60,8 +63,17 @@ export default function ChatPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  if (!session) {
-    router.push("/login");
+  // Show loading state while checking session
+  if (status === "loading") {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        Loading...
+      </div>
+    );
+  }
+
+  // Return early if not authenticated (the useEffect will handle redirect)
+  if (status === "unauthenticated") {
     return null;
   }
 
@@ -72,7 +84,7 @@ export default function ChatPage() {
         <h1 className="text-2xl font-bold mb-4">HTML & CSS Generator</h1>
         <div className="flex-grow overflow-auto mb-4 space-y-4">
           {messages.map((message, index) => (
-            <MessageComponent key={index} message={message} />
+            <MessageComponent key={index} message={message as Message} />
           ))}
           <div ref={messagesEndRef} />
         </div>
@@ -89,7 +101,6 @@ export default function ChatPage() {
           </Button>
         </form>
       </div>
-
       {/* Preview section */}
       <div className="w-1/2 p-4 flex flex-col">
         <h2 className="text-xl font-bold mb-4">Preview</h2>

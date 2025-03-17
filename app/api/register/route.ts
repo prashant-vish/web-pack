@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
     }
 
     const { name, email, password } = result.data;
-
+    console.log("Registering user", name, email);
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
       where: { email },
